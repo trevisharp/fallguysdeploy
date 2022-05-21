@@ -38,7 +38,8 @@ public class DataController : ControllerBase
                     Moment = DateTime.Now,
                     UserId = user.Id,
                     Low = pack.Pressure[i],
-                    High = pack.Pressure[i + 1]
+                    Base = pack.Pressure[i + 1],
+                    High = pack.Pressure[i + 2]
                 }.Save();
             }
             for (int i = 0; i < (pack?.Livelocation?.Count ?? 0); i += 2)
@@ -82,7 +83,7 @@ public class DataController : ControllerBase
             var notifications = await Notification.Where(n => n.UserId == user.Id);
 
             var livelocation = livelocations.LastOrDefault();
-            var pressure = pressures.LastOrDefault();
+            var pressure = pressures.Where(n => (DateTime.Now - (n.Moment ?? DateTime.Now)).Hours < 25);
             var step = steps.Reverse().Take(10).Reverse();
             var notification = notifications.Where(n => (DateTime.Now - (n.Moment ?? DateTime.Now)).Hours < 25);
             
@@ -111,11 +112,11 @@ public class DataController : ControllerBase
 
             if (livelocation != null)
                 result.Add(tuple("gps", tuple(livelocation?.Latitude ?? 0, livelocation?.Longitude ?? 0)));
-            if (pressure != null)
+            foreach (var p in pressure)
             {
-                result.Add(tuple("barometer", tuple("anklet", pressure?.Low ?? 0)));
-                result.Add(tuple("barometer", tuple("base", pressure?.Base ?? 0)));
-                result.Add(tuple("barometer", tuple("necklace", pressure?.High ?? 0)));
+                result.Add(tuple("barometer", tuple("anklet", p?.Low ?? 0)));
+                result.Add(tuple("barometer", tuple("base", p?.Base ?? 0)));
+                result.Add(tuple("barometer", tuple("necklace", p?.High ?? 0)));
             }
             result.AddRange(step.Select(s => tuple("step", tuple(s.Value))));
             result.AddRange(notification.Select(n => tuple("notification", tuple(n?.Type, n?.Message))));
