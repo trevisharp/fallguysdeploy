@@ -163,6 +163,26 @@ public class DataController : ControllerBase
             livelocations = livelocations.Where(x =>!(x.SendedToUser ?? true));
             notifications = notifications.Where(x =>!(x.SendedToUser ?? true));
 
+            var livelocation = livelocations.LastOrDefault();
+            var pressure = pressures.LastOrDefault();
+            var step = steps.Reverse().Take(10).Reverse();
+            var notification = notifications.Where(n => (DateTime.Now - (n.Moment ?? DateTime.Now)).Hours < 25);
+
+            var result = new List<object>();
+
+            if (livelocation != null)
+                result.Add(tuple("gps", tuple(livelocation?.Latitude ?? 0, livelocation?.Longitude ?? 0)));
+            if (pressure != null)
+            {
+                result.Add(tuple("barometer", tuple("anklet", pressure?.Low ?? 0)));
+                result.Add(tuple("barometer", tuple("base", pressure?.Base ?? 0)));
+                result.Add(tuple("barometer", tuple("necklace", pressure?.High ?? 0)));
+            }
+            result.AddRange(step.Select(s => tuple("step", tuple(s.Value))));
+            result.AddRange(notification.Select(n => tuple("notification", tuple(n?.Type, n?.Message))));
+            result.AddRange(step.Select(s => tuple("step", tuple(s.Value))));
+            result.AddRange(notification.Select(n => tuple("notification", tuple(n?.Type, n?.Message))));
+            
             foreach (var x in pressures)
             {
                 x.SendedToUser = true;
@@ -183,26 +203,6 @@ public class DataController : ControllerBase
                 x.SendedToUser = true;
                 await x.Save();
             }
-
-            var livelocation = livelocations.LastOrDefault();
-            var pressure = pressures.LastOrDefault();
-            var step = steps.Reverse().Take(10).Reverse();
-            var notification = notifications.Where(n => (DateTime.Now - (n.Moment ?? DateTime.Now)).Hours < 25);
-
-            var result = new List<object>();
-
-            if (livelocation != null)
-                result.Add(tuple("gps", tuple(livelocation?.Latitude ?? 0, livelocation?.Longitude ?? 0)));
-            if (pressure != null)
-            {
-                result.Add(tuple("barometer", tuple("anklet", pressure?.Low ?? 0)));
-                result.Add(tuple("barometer", tuple("base", pressure?.Base ?? 0)));
-                result.Add(tuple("barometer", tuple("necklace", pressure?.High ?? 0)));
-            }
-            result.AddRange(step.Select(s => tuple("step", tuple(s.Value))));
-            result.AddRange(notification.Select(n => tuple("notification", tuple(n?.Type, n?.Message))));
-            result.AddRange(step.Select(s => tuple("step", tuple(s.Value))));
-            result.AddRange(notification.Select(n => tuple("notification", tuple(n?.Type, n?.Message))));
 
             return new {
                 status = "OK",
