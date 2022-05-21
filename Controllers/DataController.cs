@@ -31,7 +31,7 @@ public class DataController : ControllerBase
                     Value = pack.Steps[i]
                 }.Save();
             }
-            for (int i = 0; i < (pack?.Pressure?.Count ?? 0); i += 2)
+            for (int i = 0; i < (pack?.Pressure?.Count ?? 0); i += 3)
             {
                 await new Pressure()
                 {
