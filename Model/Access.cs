@@ -12,7 +12,7 @@ public class Access<T>
     IMongoCollection<T> coll;
     public Access()
     {
-        var client = new MongoClient(Env.Get("MONGOSTRING"));
+        var client = new MongoClient("mongodb+srv://fallguys:UVQp3cB33J9UuAzf@cluster0.cpxch.mongodb.net/test?authSource=admin&replicaSet=atlas-11etck-shard-0&readPreference=primary&appname=MongoDB%20Compass&ssl=true");
         var db = client.GetDatabase("fallguys");
         this.coll = db.GetCollection<T>(typeof(T).Name);
     }

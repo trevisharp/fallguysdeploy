@@ -1,7 +1,4 @@
-using System;
 using System.Linq;
-using server.Models;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 
 namespace server.Controllers;
@@ -13,5 +10,13 @@ public class TestController : ControllerBase
     public string test()
     {
         return "FallGuys is running!";
+    }
+
+    [HttpPost("posttest")]
+    public string posttest([FromBody]string txt)
+    {
+        var result = txt.Select(c => int.Parse(c.ToString()))
+            .Sum();
+        return result.ToString();
     }
 }

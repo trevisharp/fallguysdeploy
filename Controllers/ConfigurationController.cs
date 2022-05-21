@@ -1,7 +1,10 @@
+using System;
 using System.Linq;
 using server.Models;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 
 namespace server.Controllers;
 
@@ -9,58 +12,91 @@ namespace server.Controllers;
 public class ConfigurationController : ControllerBase
 {
     [HttpPost("sendconfig")]
-    public async Task<object> sendconfig([FromBody]ConfigurationPage page)
+    public async Task<object> sendconfig([FromBody]Configuration newconf)
     {
-        var user = await TokenSystem.Test(page?.Token);
-        if (user == null)
+        try
         {
+            var user = await TokenSystem.Test(newconf?.Token);
+            if (user == null)
+            {
+                return new {
+                    status = "MT"
+                };
+            }
+
+            var config = (await ConfigurationPage.Where(p => p.UserId == user.Id)).FirstOrDefault();
+            if (config == null)
+                config = new ConfigurationPage();
+            config.UserId = user.Id;
+            config.Token = newconf.Token;
+
+            foreach (var props in typeof(ConfigurationPage).GetProperties())
+            {
+                if (props.Name == newconf.Config)
+                    props.SetValue(config, newconf?.Value.ToString());
+            }
+            await config.Save();
+            
             return new {
-                status = "MT"
+                status = "OK"
             };
         }
-
-        var config = (await ConfigurationPage.Where(p => p.UserId == user.Id)).FirstOrDefault();
-        if (config == null)
+        catch (Exception e)
         {
-            page.UserId = user.Id;
-            await page.Save();
+            return new {
+                status = "ER",
+                error = e.ToString()
+            };
         }
-        else
-        {
-            config.UserLocationSamplingRange = page.UserLocationSamplingRange ?? config.UserLocationSamplingRange;
-            config.StepSamplingRate = page.StepSamplingRate ?? config.StepSamplingRate;
-            config.Token = page.Token;
-            await config.Save();
-        }
-        
-        return new {
-            status = "OK"
-        };
     }
 
     [HttpGet("getconfig")]
     public async Task<object> getconfig([FromBody]string token)
     {
-        var user = await TokenSystem.Test(token);
-        if (user == null)
+        try
         {
-            return new {
-                status = "MT"
-            };
-        }
-        var page = (await ConfigurationPage.Where(c => c.UserId == user.Id)).FirstOrDefault();
-        if (page == null)
-        {
+            var user = await TokenSystem.Test(token);
+            if (user == null)
+            {
+                return new {
+                    status = "MT"
+                };
+            }
+            var page = (await ConfigurationPage.Where(c => c.UserId == user.Id)).FirstOrDefault();
+            if (page == null)
+            {
+                page = new ConfigurationPage();
+                page.UserId = user.Id;
+            }
+            page.Token = token;
+            await page.Save();
+
+            List<object> list = new List<object>();
+            foreach (var props in typeof(ConfigurationPage).GetProperties())
+            {
+                if (props.GetCustomAttribute<ConfigAttribute>() != null)
+                {
+                    var obj = props.GetValue(page);
+                    if (obj != null)
+                    {
+                        list.Add(new object[2] {
+                            props.Name, obj
+                        });
+                    }
+                }
+            }
+
             return new {
                 status = "OK",
-                UserLocationSamplingRange = -1,
-                StepSamplingRate = -1
+                content = list
             };
         }
-        return new {
-            status = "OK",
-            StepSamplingRate = page.StepSamplingRate,
-            UserLocationSamplingRange = page.UserLocationSamplingRange
-        };
+        catch (Exception e)
+        {
+            return new {
+                status = "ER",
+                error = e.ToString()
+            };
+        }
     }
 }

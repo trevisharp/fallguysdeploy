@@ -14,6 +14,8 @@ public abstract class Entity<T>
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
 
+    public bool? SendedToUser { get; set; } = false;
+
     public async Task Save()
     {
         var access = new Access<T>();
